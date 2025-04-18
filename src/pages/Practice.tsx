@@ -1,12 +1,11 @@
 
-import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { MainNav } from "@/components/MainNav";
 import { SearchAndFilter } from "@/components/SearchAndFilter";
 import { PracticeGrid } from "@/components/PracticeGrid";
-import { UploadModal } from "@/components/UploadModal";
-import { useLocation } from "react-router-dom";
+import { useState } from "react";
 
-const Index = () => {
+const Practice = () => {
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
@@ -37,17 +36,12 @@ const Index = () => {
       
       <main className="container px-4 py-24 mx-auto">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-osslt-dark-gray mb-2">OSSLT Practice Pal</h1>
-              <p className="text-gray-600 max-w-2xl">
-                Prepare for the Ontario Secondary School Literacy Test with our collection of practice problems.
-                Master multiple choice, short answer, paragraph writing, and matching questions.
-              </p>
-            </div>
-            <div className="mt-4 sm:mt-0">
-              <UploadModal />
-            </div>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-osslt-dark-gray mb-2">Practice Problems</h1>
+            <p className="text-gray-600">
+              Browse our collection of OSSLT practice problems created by teachers and students.
+              Filter by question type, difficulty level, or search for specific topics.
+            </p>
           </div>
           
           <SearchAndFilter 
@@ -65,4 +59,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Practice;
