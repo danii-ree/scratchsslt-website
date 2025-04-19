@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +22,7 @@ import {
 import { UploadCloud, Loader2, Check, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export function UploadModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -57,26 +57,77 @@ export function UploadModal() {
     resetForm();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!file || !title || !questionType) return;
+
     setUploadStatus("uploading");
-    
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setUploadStatus("success");
-          
-          // Show success toast
-          toast.success("Practice content uploaded successfully!", {
-            description: "Your content is now available in the library."
-          });
-          
-          return 100;
-        }
-        return prev + 10;
+    try {
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to storage bucket
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('practice-materials')
+        .upload(filePath, file, {
+          onUploadProgress: (progress) => {
+            setUploadProgress(Math.round((progress.loaded / progress.total!) * 50));
+          },
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('practice-materials')
+        .getPublicUrl(filePath);
+
+      // Create document record
+      const { data: documentData, error: documentError } = await supabase
+        .from('documents')
+        .insert([
+          {
+            title,
+            description,
+            file_url: publicUrl,
+          },
+        ])
+        .select()
+        .single();
+
+      if (documentError) throw documentError;
+
+      setUploadProgress(75);
+
+      // Create practice content record
+      const { data: practiceData, error: practiceError } = await supabase
+        .from('practice_content')
+        .insert([
+          {
+            title,
+            description,
+            document_id: documentData.id,
+            question_type: questionType,
+          },
+        ])
+        .select()
+        .single();
+
+      if (practiceError) throw practiceError;
+
+      setUploadProgress(100);
+      setUploadStatus("success");
+      toast.success("Practice content uploaded successfully!", {
+        description: "Your content is now available in the library."
       });
-    }, 300);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadStatus("error");
+      toast.error("Failed to upload content", {
+        description: "Please try again later."
+      });
+    }
   };
 
   const handleNextStep = () => {

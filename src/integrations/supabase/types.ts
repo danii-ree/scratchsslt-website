@@ -9,7 +9,202 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      documents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          file_url: string
+          id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          file_url: string
+          id?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          file_url?: string
+          id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      matching_questions: {
+        Row: {
+          created_at: string | null
+          id: string
+          pairs: Json
+          practice_content_id: string | null
+          question_text: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          pairs: Json
+          practice_content_id?: string | null
+          question_text: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          pairs?: Json
+          practice_content_id?: string | null
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matching_questions_practice_content_id_fkey"
+            columns: ["practice_content_id"]
+            isOneToOne: false
+            referencedRelation: "practice_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multiple_choice_questions: {
+        Row: {
+          correct_answer: string
+          created_at: string | null
+          id: string
+          options: Json
+          practice_content_id: string | null
+          question_text: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string | null
+          id?: string
+          options: Json
+          practice_content_id?: string | null
+          question_text: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string | null
+          id?: string
+          options?: Json
+          practice_content_id?: string | null
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multiple_choice_questions_practice_content_id_fkey"
+            columns: ["practice_content_id"]
+            isOneToOne: false
+            referencedRelation: "practice_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paragraph_questions: {
+        Row: {
+          created_at: string | null
+          id: string
+          practice_content_id: string | null
+          question_text: string
+          rubric: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          practice_content_id?: string | null
+          question_text: string
+          rubric: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          practice_content_id?: string | null
+          question_text?: string
+          rubric?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paragraph_questions_practice_content_id_fkey"
+            columns: ["practice_content_id"]
+            isOneToOne: false
+            referencedRelation: "practice_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_content: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          document_id: string | null
+          id: string
+          question_type: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          document_id?: string | null
+          id?: string
+          question_type: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          document_id?: string | null
+          id?: string
+          question_type?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_content_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      short_answer_questions: {
+        Row: {
+          answer_key: string
+          created_at: string | null
+          id: string
+          practice_content_id: string | null
+          question_text: string
+        }
+        Insert: {
+          answer_key: string
+          created_at?: string | null
+          id?: string
+          practice_content_id?: string | null
+          question_text: string
+        }
+        Update: {
+          answer_key?: string
+          created_at?: string | null
+          id?: string
+          practice_content_id?: string | null
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "short_answer_questions_practice_content_id_fkey"
+            columns: ["practice_content_id"]
+            isOneToOne: false
+            referencedRelation: "practice_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
