@@ -67,16 +67,18 @@ export function UploadModal() {
       const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
       const filePath = `${fileName}`;
 
+      // Set initial progress
+      setUploadProgress(10);
+      
       // Upload to storage bucket
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('practice-materials')
-        .upload(filePath, file, {
-          onUploadProgress: (progress) => {
-            setUploadProgress(Math.round((progress.loaded / progress.total!) * 50));
-          },
-        });
+        .upload(filePath, file);
 
       if (uploadError) throw uploadError;
+      
+      // Update progress after upload
+      setUploadProgress(50);
 
       // Get the public URL
       const { data: { publicUrl } } = supabase.storage
