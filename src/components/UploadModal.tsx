@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +44,7 @@ export function UploadModal() {
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [file, setFile] = useState<File | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -59,6 +61,8 @@ export function UploadModal() {
     setUploadProgress(0);
     setUploadStatus("idle");
     setFile(null);
+    setQuestions([]);
+    setIsSubmitting(false);
   };
 
   const handleClose = () => {
@@ -72,9 +76,17 @@ export function UploadModal() {
   };
 
   const handleSubmit = async () => {
-    if (!file || !title || !questionType) return;
+    if (isSubmitting) return;
+    if (!file || !title || !questionType || questions.length === 0) {
+      toast.error("Missing required fields", {
+        description: "Please fill in all required fields and add at least one question."
+      });
+      return;
+    }
 
+    setIsSubmitting(true);
     setUploadStatus("uploading");
+    
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
@@ -82,9 +94,20 @@ export function UploadModal() {
 
       setUploadProgress(10);
       
+      // Check if storage bucket exists, if not create it
+      const { data: buckets } = await supabase.storage.listBuckets();
+      if (!buckets?.find(bucket => bucket.name === 'practice-materials')) {
+        await supabase.storage.createBucket('practice-materials', {
+          public: true
+        });
+      }
+
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('practice-materials')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
       
@@ -130,17 +153,17 @@ export function UploadModal() {
       setUploadProgress(75);
 
       if (questions.length > 0) {
+        const questionsToInsert = questions.map(q => ({
+          practice_content_id: practiceData.id,
+          question_text: q.text,
+          question_type: q.type,
+          options: q.options ? q.options : null,
+          correct_answer: q.correctAnswer,
+        }));
+
         const { error: questionsError } = await supabase
           .from('questions')
-          .insert(
-            questions.map(q => ({
-              practice_content_id: practiceData.id,
-              question_text: q.text,
-              question_type: q.type,
-              options: q.options ? q.options : null,
-              correct_answer: q.correctAnswer,
-            }))
-          );
+          .insert(questionsToInsert);
 
         if (questionsError) throw questionsError;
       }
@@ -156,6 +179,8 @@ export function UploadModal() {
       toast.error("Failed to upload content", {
         description: "Please try again later."
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -174,7 +199,7 @@ export function UploadModal() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="default" className="bg-osslt-purple hover:bg-osslt-dark-purple">
+        <Button variant="default" className="bg-osslt-purple hover:bg-osslt-dark-purple transition-colors duration-300 transform hover:scale-105">
           <UploadCloud className="mr-2 h-4 w-4" />
           Upload Practice Content
         </Button>
@@ -243,7 +268,7 @@ export function UploadModal() {
           <div className="space-y-4 py-4 animate-fade-in">
             <div className="space-y-2">
               <Label htmlFor="file">Upload Reading Passage or PDF</Label>
-              <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center">
+              <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center transition-all duration-300 hover:border-osslt-purple hover:bg-osslt-purple/5">
                 <UploadCloud className="h-10 w-10 text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground mb-2">
                   Drag and drop or click to upload
@@ -258,12 +283,12 @@ export function UploadModal() {
                 <Button 
                   variant="outline" 
                   onClick={() => document.getElementById("file")?.click()}
-                  className="mt-2"
+                  className="mt-2 transition-all duration-200 hover:bg-osslt-purple/10"
                 >
                   Select File
                 </Button>
                 {file && (
-                  <div className="mt-4 flex items-center gap-2 bg-muted p-2 rounded-md w-full">
+                  <div className="mt-4 flex items-center gap-2 bg-muted p-2 rounded-md w-full animate-fade-in">
                     <div className="w-full overflow-hidden">
                       <p className="text-sm font-medium truncate">{file.name}</p>
                       <p className="text-xs text-muted-foreground">
@@ -274,7 +299,7 @@ export function UploadModal() {
                       variant="ghost" 
                       size="icon" 
                       onClick={() => setFile(null)}
-                      className="h-8 w-8"
+                      className="h-8 w-8 hover:bg-red-100 hover:text-red-600 transition-colors"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -290,13 +315,38 @@ export function UploadModal() {
             {uploadStatus === "idle" && (
               <>
                 <div className="mb-6">
-                  <h3 className="text-lg font-medium mb-4">Added Questions ({questions.length})</h3>
-                  {questions.map((q, index) => (
-                    <div key={index} className="p-3 bg-muted rounded-md mb-2">
-                      <p className="font-medium">{q.text}</p>
-                      <p className="text-sm text-muted-foreground">Type: {q.type}</p>
-                    </div>
-                  ))}
+                  <h3 className="text-lg font-medium mb-4 flex items-center justify-between">
+                    <span>Added Questions ({questions.length})</span>
+                    {questions.length > 0 && (
+                      <span className="text-sm text-muted-foreground">
+                        At least one question is required
+                      </span>
+                    )}
+                  </h3>
+                  <div className="max-h-[200px] overflow-y-auto space-y-2">
+                    {questions.map((q, index) => (
+                      <div key={index} className="p-3 bg-muted rounded-md mb-2 animate-fade-in">
+                        <p className="font-medium">{q.text}</p>
+                        <div className="flex justify-between items-center mt-1">
+                          <p className="text-sm text-muted-foreground">Type: {q.type}</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 hover:bg-red-100 hover:text-red-600 transition-colors"
+                            onClick={() => setQuestions(questions.filter((_, i) => i !== index))}
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {questions.length === 0 && (
+                      <div className="p-4 text-center border border-dashed rounded-md">
+                        <p className="text-muted-foreground">No questions added yet</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <QuestionForm onQuestionAdd={handleAddQuestion} />
               </>
@@ -316,9 +366,9 @@ export function UploadModal() {
             )}
             
             {uploadStatus === "success" && (
-              <div className="space-y-4">
+              <div className="space-y-4 animate-fade-in">
                 <div className="flex items-center justify-center">
-                  <div className="rounded-full bg-green-100 p-3">
+                  <div className="rounded-full bg-green-100 p-3 animate-scale-in">
                     <Check className="h-8 w-8 text-green-600" />
                   </div>
                 </div>
@@ -330,7 +380,7 @@ export function UploadModal() {
             )}
             
             {uploadStatus === "error" && (
-              <div className="space-y-4">
+              <div className="space-y-4 animate-fade-in">
                 <div className="flex items-center justify-center">
                   <div className="rounded-full bg-red-100 p-3">
                     <X className="h-8 w-8 text-red-600" />
@@ -347,7 +397,11 @@ export function UploadModal() {
 
         <DialogFooter className="flex items-center justify-between sm:justify-between">
           {step > 1 && uploadStatus === "idle" && (
-            <Button variant="outline" onClick={handlePrevStep}>
+            <Button 
+              variant="outline" 
+              onClick={handlePrevStep}
+              className="transition-all duration-200 hover:bg-gray-100"
+            >
               Back
             </Button>
           )}
@@ -359,26 +413,36 @@ export function UploadModal() {
                 (step === 1 && (!title || !description || !questionType || !difficulty)) ||
                 (step === 2 && !file)
               }
-              className="bg-osslt-purple hover:bg-osslt-dark-purple ml-auto"
+              className="bg-osslt-purple hover:bg-osslt-dark-purple ml-auto transition-all duration-200"
             >
               Next
             </Button>
           )}
           
-          {step === 3 && uploadStatus === "idle" && questions.length > 0 && (
-            <Button onClick={handleSubmit} className="bg-osslt-purple hover:bg-osslt-dark-purple ml-auto">
+          {step === 3 && uploadStatus === "idle" && (
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isSubmitting || questions.length === 0}
+              className="bg-osslt-purple hover:bg-osslt-dark-purple ml-auto transition-all duration-200"
+            >
               Submit
             </Button>
           )}
           
           {uploadStatus === "success" && (
-            <Button onClick={handleClose} className="ml-auto">
+            <Button 
+              onClick={handleClose} 
+              className="ml-auto transition-all duration-200 hover:bg-gray-100"
+            >
               Close
             </Button>
           )}
           
           {uploadStatus === "error" && (
-            <Button onClick={() => setUploadStatus("idle")} className="ml-auto">
+            <Button 
+              onClick={() => setUploadStatus("idle")} 
+              className="ml-auto transition-all duration-200 hover:bg-gray-100"
+            >
               Try Again
             </Button>
           )}

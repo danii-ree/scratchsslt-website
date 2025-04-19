@@ -12,6 +12,18 @@ import {
 } from "@/components/ui/select";
 import { Plus, Minus, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { 
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage 
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface Option {
   id: string;
@@ -27,15 +39,33 @@ interface QuestionFormProps {
   }) => void;
 }
 
+// Create a schema for question validation
+const questionSchema = z.object({
+  text: z.string().min(3, "Question text is required"),
+  type: z.string().min(1, "Question type is required"),
+  correctAnswer: z.string().optional(),
+});
+
 export function QuestionForm({ onQuestionAdd }: QuestionFormProps) {
-  const [questionText, setQuestionText] = useState("");
-  const [questionType, setQuestionType] = useState("");
   const [options, setOptions] = useState<Option[]>([
     { id: crypto.randomUUID(), text: "" },
     { id: crypto.randomUUID(), text: "" },
   ]);
-  const [correctAnswer, setCorrectAnswer] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Initialize form
+  const form = useForm<{
+    text: string;
+    type: string;
+    correctAnswer: string;
+  }>({
+    resolver: zodResolver(questionSchema),
+    defaultValues: {
+      text: "",
+      type: "",
+      correctAnswer: "",
+    },
+  });
 
   const addOption = () => {
     setOptions([...options, { id: crypto.randomUUID(), text: "" }]);
@@ -51,112 +81,147 @@ export function QuestionForm({ onQuestionAdd }: QuestionFormProps) {
     ));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (values: z.infer<typeof questionSchema>) => {
     setLoading(true);
     
     onQuestionAdd({
-      text: questionText,
-      type: questionType,
-      options: questionType === 'multiple-choice' ? options : undefined,
-      correctAnswer: questionType !== 'paragraph' ? correctAnswer : undefined,
+      text: values.text,
+      type: values.type,
+      options: values.type === 'multiple-choice' ? options : undefined,
+      correctAnswer: values.type !== 'paragraph' ? values.correctAnswer : undefined,
     });
 
     // Reset form
-    setQuestionText("");
-    setQuestionType("");
+    form.reset({
+      text: "",
+      type: "",
+      correctAnswer: "",
+    });
+    
     setOptions([
       { id: crypto.randomUUID(), text: "" },
       { id: crypto.randomUUID(), text: "" },
     ]);
-    setCorrectAnswer("");
+    
     setLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
-      <div className="space-y-2">
-        <Label htmlFor="questionText">Question Text</Label>
-        <Textarea
-          id="questionText"
-          value={questionText}
-          onChange={(e) => setQuestionText(e.target.value)}
-          placeholder="Enter your question"
-          className="min-h-[100px]"
-          required
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 animate-fade-in">
+        <FormField
+          control={form.control}
+          name="text"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Question Text</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder="Enter your question"
+                  className="min-h-[100px]"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="questionType">Question Type</Label>
-        <Select value={questionType} onValueChange={setQuestionType} required>
-          <SelectTrigger>
-            <SelectValue placeholder="Select question type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
-            <SelectItem value="short-answer">Short Answer</SelectItem>
-            <SelectItem value="paragraph">Paragraph</SelectItem>
-            <SelectItem value="matching">Matching</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Question Type</FormLabel>
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  // Reset correctAnswer when changing question type
+                  if (value === 'paragraph') {
+                    form.setValue('correctAnswer', '');
+                  }
+                }}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select question type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
+                  <SelectItem value="short-answer">Short Answer</SelectItem>
+                  <SelectItem value="paragraph">Paragraph</SelectItem>
+                  <SelectItem value="matching">Matching</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      {questionType === 'multiple-choice' && (
-        <div className="space-y-4 animate-fade-in">
-          <Label>Options</Label>
-          {options.map((option, index) => (
-            <div key={option.id} className="flex items-center gap-2">
-              <Input
-                value={option.text}
-                onChange={(e) => updateOption(option.id, e.target.value)}
-                placeholder={`Option ${index + 1}`}
-                required
-              />
-              {options.length > 2 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeOption(option.id)}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addOption}
-            className="w-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Option
-          </Button>
-        </div>
-      )}
-
-      {(questionType === 'multiple-choice' || questionType === 'short-answer') && (
-        <div className="space-y-2 animate-fade-in">
-          <Label htmlFor="correctAnswer">Correct Answer</Label>
-          <Input
-            id="correctAnswer"
-            value={correctAnswer}
-            onChange={(e) => setCorrectAnswer(e.target.value)}
-            placeholder="Enter the correct answer"
-            required
-          />
-        </div>
-      )}
-
-      <Button type="submit" disabled={loading} className="w-full">
-        {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          "Add Question"
+        {form.watch("type") === 'multiple-choice' && (
+          <div className="space-y-4 animate-fade-in">
+            <Label>Options</Label>
+            {options.map((option, index) => (
+              <div key={option.id} className="flex items-center gap-2">
+                <Input
+                  value={option.text}
+                  onChange={(e) => updateOption(option.id, e.target.value)}
+                  placeholder={`Option ${index + 1}`}
+                  required
+                />
+                {options.length > 2 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeOption(option.id)}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addOption}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Option
+            </Button>
+          </div>
         )}
-      </Button>
-    </form>
+
+        {(form.watch("type") === 'multiple-choice' || form.watch("type") === 'short-answer') && (
+          <FormField
+            control={form.control}
+            name="correctAnswer"
+            render={({ field }) => (
+              <FormItem className="space-y-2 animate-fade-in">
+                <FormLabel>Correct Answer</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="Enter the correct answer"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            "Add Question"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 }

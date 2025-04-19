@@ -27,70 +27,6 @@ const mapQuestionType = (type: string): "Multiple Choice" | "Short Answer" | "Pa
   return typeMap[type] || "Multiple Choice";
 };
 
-// Sample data as fallback
-const samplePracticeProblems = [
-  {
-    id: "1",
-    title: "Understanding Themes in Short Stories",
-    description: "Practice identifying themes and main ideas in short literary texts.",
-    type: "Multiple Choice" as const,
-    difficulty: "Easy" as const,
-    timeEstimate: "15 mins",
-    creator: "Mrs. Johnson",
-    savedCount: 245
-  },
-  {
-    id: "2",
-    title: "Analyzing Character Motivations",
-    description: "Explore character development and motivations in narrative texts.",
-    type: "Short Answer" as const,
-    difficulty: "Medium" as const,
-    timeEstimate: "20 mins",
-    creator: "Mr. Davis",
-    savedCount: 189
-  },
-  {
-    id: "3",
-    title: "Paragraph Writing: Organizing Ideas",
-    description: "Learn to write well-organized paragraphs with clear topic sentences.",
-    type: "Paragraph" as const,
-    difficulty: "Medium" as const,
-    timeEstimate: "30 mins",
-    creator: "Ms. Williams",
-    savedCount: 312
-  },
-  {
-    id: "4",
-    title: "Identifying Literary Devices",
-    description: "Match literary devices with their examples from various texts.",
-    type: "Matching" as const,
-    difficulty: "Hard" as const,
-    timeEstimate: "25 mins",
-    creator: "Dr. Martinez",
-    savedCount: 178
-  },
-  {
-    id: "5",
-    title: "Comprehending News Articles",
-    description: "Practice reading and understanding informational texts from news sources.",
-    type: "Multiple Choice" as const,
-    difficulty: "Medium" as const,
-    timeEstimate: "20 mins",
-    creator: "Mr. Thompson",
-    savedCount: 203
-  },
-  {
-    id: "6",
-    title: "Writing Opinion Paragraphs",
-    description: "Learn to express and support your opinions in structured paragraphs.",
-    type: "Paragraph" as const,
-    difficulty: "Hard" as const,
-    timeEstimate: "35 mins",
-    creator: "Ms. Garcia",
-    savedCount: 156
-  }
-];
-
 interface PracticeGridProps {
   searchTerm?: string;
   filters?: {
@@ -125,6 +61,8 @@ export function PracticeGrid({ searchTerm = "", filters }: PracticeGridProps) {
             title,
             description,
             question_type,
+            difficulty,
+            time_estimate,
             documents(id)
           `)
           .order('created_at', { ascending: false });
@@ -139,11 +77,10 @@ export function PracticeGrid({ searchTerm = "", filters }: PracticeGridProps) {
             title: item.title,
             description: item.description || "No description provided",
             type: mapQuestionType(item.question_type),
-            // For prototype purposes, assign random difficulty
-            difficulty: ["Easy", "Medium", "Hard"][Math.floor(Math.random() * 3)] as "Easy" | "Medium" | "Hard",
-            timeEstimate: `${Math.floor(Math.random() * 30) + 10} mins`,
+            difficulty: (item.difficulty ? item.difficulty.charAt(0).toUpperCase() + item.difficulty.slice(1) : "Medium") as "Easy" | "Medium" | "Hard",
+            timeEstimate: item.time_estimate || "15 mins",
             creator: "OSSLT Teacher",
-            savedCount: Math.floor(Math.random() * 300),
+            savedCount: Math.floor(Math.random() * 50) + 10,
           }));
           
           setPracticeProblems(formattedData);
@@ -176,8 +113,8 @@ export function PracticeGrid({ searchTerm = "", filters }: PracticeGridProps) {
           title: newItem.title,
           description: newItem.description || "No description provided",
           type: mapQuestionType(newItem.question_type),
-          difficulty: ["Easy", "Medium", "Hard"][Math.floor(Math.random() * 3)] as "Easy" | "Medium" | "Hard",
-          timeEstimate: `${Math.floor(Math.random() * 30) + 10} mins`,
+          difficulty: (newItem.difficulty ? newItem.difficulty.charAt(0).toUpperCase() + newItem.difficulty.slice(1) : "Medium") as "Easy" | "Medium" | "Hard",
+          timeEstimate: newItem.time_estimate || "15 mins",
           creator: "OSSLT Teacher",
           savedCount: Math.floor(Math.random() * 20),
         };
@@ -262,13 +199,10 @@ export function PracticeGrid({ searchTerm = "", filters }: PracticeGridProps) {
     );
   }
 
-  // If we have no data from Supabase, use sample data
-  const dataToDisplay = practiceProblems.length === 0 && !error ? samplePracticeProblems : filteredProblems;
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {dataToDisplay.length > 0 ? (
-        dataToDisplay.map((problem) => (
+      {filteredProblems.length > 0 ? (
+        filteredProblems.map((problem) => (
           <PracticeCard
             key={problem.id}
             id={problem.id}
@@ -285,7 +219,7 @@ export function PracticeGrid({ searchTerm = "", filters }: PracticeGridProps) {
         <div className="col-span-3 text-center py-12">
           <h3 className="text-lg font-medium mb-2">No practice problems found</h3>
           <p className="text-muted-foreground mb-4">
-            Try adjusting your search or filters to find more content
+            Try adjusting your search or filters to find more content, or create your own practice content.
           </p>
         </div>
       )}
