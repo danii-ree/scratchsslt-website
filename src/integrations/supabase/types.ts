@@ -179,6 +179,30 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string | null
+          first_name: string
+          id: string
+          last_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          first_name: string
+          id: string
+          last_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       questions: {
         Row: {
           correct_answer: string | null
