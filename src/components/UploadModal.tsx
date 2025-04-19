@@ -23,6 +23,14 @@ import { UploadCloud, Loader2, Check, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { QuestionForm } from "./QuestionForm";
+
+interface Question {
+  text: string;
+  type: string;
+  options?: { id: string; text: string; }[];
+  correctAnswer?: string;
+}
 
 export function UploadModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,6 +42,7 @@ export function UploadModal() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [file, setFile] = useState<File | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -57,35 +66,34 @@ export function UploadModal() {
     resetForm();
   };
 
+  const handleAddQuestion = (question: Question) => {
+    setQuestions([...questions, question]);
+    toast.success("Question added successfully");
+  };
+
   const handleSubmit = async () => {
     if (!file || !title || !questionType) return;
 
     setUploadStatus("uploading");
     try {
-      // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).slice(2)}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // Set initial progress
       setUploadProgress(10);
       
-      // Upload to storage bucket
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('practice-materials')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
       
-      // Update progress after upload
-      setUploadProgress(50);
+      setUploadProgress(30);
 
-      // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('practice-materials')
         .getPublicUrl(filePath);
 
-      // Create document record
       const { data: documentData, error: documentError } = await supabase
         .from('documents')
         .insert([
@@ -100,9 +108,8 @@ export function UploadModal() {
 
       if (documentError) throw documentError;
 
-      setUploadProgress(75);
+      setUploadProgress(50);
 
-      // Create practice content record
       const { data: practiceData, error: practiceError } = await supabase
         .from('practice_content')
         .insert([
@@ -111,12 +118,32 @@ export function UploadModal() {
             description,
             document_id: documentData.id,
             question_type: questionType,
+            difficulty,
+            time_estimate: '15 mins',
           },
         ])
         .select()
         .single();
 
       if (practiceError) throw practiceError;
+
+      setUploadProgress(75);
+
+      if (questions.length > 0) {
+        const { error: questionsError } = await supabase
+          .from('questions')
+          .insert(
+            questions.map(q => ({
+              practice_content_id: practiceData.id,
+              question_text: q.text,
+              question_type: q.type,
+              options: q.options ? q.options : null,
+              correct_answer: q.correctAnswer,
+            }))
+          );
+
+        if (questionsError) throw questionsError;
+      }
 
       setUploadProgress(100);
       setUploadStatus("success");
@@ -152,7 +179,7 @@ export function UploadModal() {
           Upload Practice Content
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[725px] transform transition-all duration-300 animate-in fade-in-0 zoom-in-95">
         <DialogHeader>
           <DialogTitle>Upload Practice Content</DialogTitle>
           <DialogDescription>
@@ -161,7 +188,7 @@ export function UploadModal() {
         </DialogHeader>
 
         {step === 1 && (
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 animate-fade-in">
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input
@@ -213,7 +240,7 @@ export function UploadModal() {
         )}
 
         {step === 2 && (
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 animate-fade-in">
             <div className="space-y-2">
               <Label htmlFor="file">Upload Reading Passage or PDF</Label>
               <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center">
@@ -259,13 +286,20 @@ export function UploadModal() {
         )}
 
         {step === 3 && (
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 animate-fade-in">
             {uploadStatus === "idle" && (
-              <div className="text-center space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Ready to upload your practice content. Click submit to continue.
-                </p>
-              </div>
+              <>
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium mb-4">Added Questions ({questions.length})</h3>
+                  {questions.map((q, index) => (
+                    <div key={index} className="p-3 bg-muted rounded-md mb-2">
+                      <p className="font-medium">{q.text}</p>
+                      <p className="text-sm text-muted-foreground">Type: {q.type}</p>
+                    </div>
+                  ))}
+                </div>
+                <QuestionForm onQuestionAdd={handleAddQuestion} />
+              </>
             )}
             
             {uploadStatus === "uploading" && (
@@ -331,7 +365,7 @@ export function UploadModal() {
             </Button>
           )}
           
-          {step === 3 && uploadStatus === "idle" && (
+          {step === 3 && uploadStatus === "idle" && questions.length > 0 && (
             <Button onClick={handleSubmit} className="bg-osslt-purple hover:bg-osslt-dark-purple ml-auto">
               Submit
             </Button>

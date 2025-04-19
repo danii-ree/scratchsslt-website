@@ -139,27 +139,33 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          difficulty: string
           document_id: string | null
           id: string
           question_type: string
+          time_estimate: string
           title: string
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           description?: string | null
+          difficulty?: string
           document_id?: string | null
           id?: string
           question_type: string
+          time_estimate?: string
           title: string
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           description?: string | null
+          difficulty?: string
           document_id?: string | null
           id?: string
           question_type?: string
+          time_estimate?: string
           title?: string
           updated_at?: string | null
         }
@@ -169,6 +175,47 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          correct_answer: string | null
+          created_at: string | null
+          id: string
+          options: Json | null
+          practice_content_id: string | null
+          question_text: string
+          question_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string | null
+          id?: string
+          options?: Json | null
+          practice_content_id?: string | null
+          question_text: string
+          question_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string | null
+          id?: string
+          options?: Json | null
+          practice_content_id?: string | null
+          question_text?: string
+          question_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_practice_content_id_fkey"
+            columns: ["practice_content_id"]
+            isOneToOne: false
+            referencedRelation: "practice_content"
             referencedColumns: ["id"]
           },
         ]
