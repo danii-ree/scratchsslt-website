@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,51 +26,43 @@ export function PracticeCard({
   savedCount,
 }: PracticeCardProps) {
   // Define badge color based on difficulty
-  const difficultyColor = {
-    Easy: "bg-green-100 text-green-800",
-    Medium: "bg-yellow-100 text-yellow-800",
-    Hard: "bg-red-100 text-red-800",
-  }[difficulty];
-
-  // Define badge color based on question type
-  const typeColor = {
-    "Multiple Choice": "bg-blue-100 text-blue-800",
-    "Short Answer": "bg-purple-100 text-purple-800",
-    "Paragraph": "bg-indigo-100 text-indigo-800",
-    "Matching": "bg-pink-100 text-pink-800",
-  }[type];
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty.toLowerCase()) {
+      case "easy":
+        return "bg-green-100 text-green-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "hard":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between">
-          <div className="space-y-1">
-            <CardTitle className="line-clamp-1 text-lg">{title}</CardTitle>
-            <CardDescription className="line-clamp-2">
-              {description}
-            </CardDescription>
-          </div>
-        </div>
+    <Card className="flex flex-col h-full">
+      <CardHeader>
+        <CardTitle className="text-xl">{title}</CardTitle>
+        <CardDescription className="line-clamp-2">{description}</CardDescription>
       </CardHeader>
-      <CardContent className="pb-2">
+      <CardContent className="flex-grow">
         <div className="flex flex-wrap gap-2 mb-4">
-          <Badge variant="outline" className={typeColor}>
+          <Badge variant="outline" className="bg-blue-100 text-blue-800">
             {type}
           </Badge>
-          <Badge variant="outline" className={difficultyColor}>
+          <Badge variant="outline" className={getDifficultyColor(difficulty)}>
             {difficulty}
           </Badge>
-          <Badge variant="outline" className="bg-gray-100 text-gray-800">
-            <Clock className="mr-1 h-3 w-3" /> {timeEstimate}
-          </Badge>
         </div>
-        <div className="text-sm text-muted-foreground">
-          <span className="flex items-center">
-            <Book className="mr-1 h-3 w-3" /> Created by {creator}
-          </span>
-          <span className="flex items-center mt-1">
-            <Star className="mr-1 h-3 w-3" /> Saved by {savedCount} students
-          </span>
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Clock className="h-4 w-4" />
+            <span>{timeEstimate}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Star className="h-4 w-4" />
+            <span>{savedCount} saves</span>
+          </div>
         </div>
       </CardContent>
       <CardFooter>

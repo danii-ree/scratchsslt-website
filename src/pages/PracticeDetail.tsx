@@ -1,16 +1,47 @@
-
-import { useLocation, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useLocation, useParams, useNavigate, Link } from "react-router-dom";
 import { MainNav } from "@/components/MainNav";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bookmark, Share2 } from "lucide-react";
-import { PDFViewer } from "@/components/PDFViewer";
+import { ArrowLeft, Bookmark, Share2, AlertCircle, Loader2 } from "lucide-react";
 import { QuestionSection } from "@/components/QuestionSection";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const PracticeDetail = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { id } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [practiceContent, setPracticeContent] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchPracticeContent = async () => {
+      if (!id) return;
+
+      try {
+        setLoading(true);
+        const { data, error: fetchError } = await supabase
+          .from("practice_content")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        setPracticeContent(data);
+      } catch (err) {
+        console.error("Error fetching practice content:", err);
+        setError("Failed to load practice content");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPracticeContent();
+  }, [id]);
 
   const handleSave = () => {
     toast.success("Practice saved to your library!", {
@@ -21,67 +52,115 @@ const PracticeDetail = () => {
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Link copied to clipboard!", {
-      description: "You can now share this practice problem with others."
+      description: "Share this practice with others."
     });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <MainNav currentPath={location.pathname} />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-osslt-purple" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !practiceContent) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <MainNav currentPath={location.pathname} />
+        <div className="container py-8">
+          <div className="flex flex-col items-center justify-center h-64">
+            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Content Not Found</h3>
+            <p className="text-muted-foreground mb-4">{error || "This practice content doesn't exist."}</p>
+            <Button asChild>
+              <Link to="/practice">Back to Practice</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <MainNav currentPath={location.pathname} />
       
-      <main className="container px-4 py-24 mx-auto">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <Button variant="outline" size="icon" asChild className="mr-4">
-                <Link to="/practice">
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-              <h1 className="text-2xl font-bold text-osslt-dark-gray">The Curious Case of the Night Sky</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleSave}>
-                <Bookmark className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShare}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-            </div>
-          </div>
-          
-          <div className="mb-4 flex flex-wrap gap-2">
-            <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Multiple Choice</span>
-            <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">Short Answer</span>
-            <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">Paragraph</span>
-            <span className="px-2 py-1 text-xs rounded-full bg-pink-100 text-pink-800">Matching</span>
-            <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Reading Comprehension</span>
-          </div>
-          
-          <p className="text-gray-600 mb-8">
-            Read the short story below, then answer the questions that follow. This practice set includes 
-            multiple choice, short answer, paragraph writing, and matching questions.
-          </p>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Reading Passage</h2>
-              <div className="bg-white rounded-lg shadow overflow-hidden h-[600px]">
-                <PDFViewer />
-              </div>
-            </div>
+      <div className="container py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="mb-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
             
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Questions</h2>
-              <div className="bg-white rounded-lg shadow p-6 overflow-y-auto h-[600px]">
-                <QuestionSection />
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {practiceContent.title}
+                </h1>
+                <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                  <span className="capitalize">{practiceContent.difficulty}</span>
+                  <span>•</span>
+                  <span>{practiceContent.time_estimate}</span>
+                  <span>•</span>
+                  <span className="capitalize">{practiceContent.question_type.replace('-', ' ')}</span>
+                </div>
+                {practiceContent.description && (
+                  <p className="text-gray-700">{practiceContent.description.substring(0, 200)}...</p>
+                )}
               </div>
+              
+              <div className="flex gap-2 ml-4">
+                <Button variant="outline" onClick={handleSave}>
+                  <Bookmark className="h-4 w-4 mr-2" />
+                  Save
+                </Button>
+                <Button variant="outline" onClick={handleShare}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="bg-white rounded-lg border shadow-sm">
+            {/* Reading Passage */}
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-semibold mb-4">Reading Passage</h2>
+              <div className="prose max-w-none">
+                <div className="text-gray-700 leading-relaxed whitespace-pre-wrap mb-6">
+                  {practiceContent.description}
+                </div>
+                {practiceContent.image_url && (
+                  <div className="mt-6">
+                    <img 
+                      src={practiceContent.image_url} 
+                      alt="Passage illustration" 
+                      className="max-w-full h-auto rounded-lg shadow-sm"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Questions */}
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Questions</h2>
+              <QuestionSection practiceContentId={id!} />
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

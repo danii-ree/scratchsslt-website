@@ -142,6 +142,7 @@ export type Database = {
           difficulty: string
           document_id: string | null
           id: string
+          image_url: string | null
           question_type: string
           time_estimate: string
           title: string
@@ -153,6 +154,7 @@ export type Database = {
           difficulty?: string
           document_id?: string | null
           id?: string
+          image_url?: string | null
           question_type: string
           time_estimate?: string
           title: string
@@ -164,6 +166,7 @@ export type Database = {
           difficulty?: string
           document_id?: string | null
           id?: string
+          image_url?: string | null
           question_type?: string
           time_estimate?: string
           title?: string
@@ -186,6 +189,10 @@ export type Database = {
           id: string
           last_name: string
           updated_at: string | null
+          profile_picture_url: string | null
+          school: string | null
+          grade: string | null
+          bio: string | null
         }
         Insert: {
           created_at?: string | null
@@ -193,6 +200,10 @@ export type Database = {
           id: string
           last_name: string
           updated_at?: string | null
+          profile_picture_url?: string | null
+          school?: string | null
+          grade?: string | null
+          bio?: string | null
         }
         Update: {
           created_at?: string | null
@@ -200,6 +211,10 @@ export type Database = {
           id?: string
           last_name?: string
           updated_at?: string | null
+          profile_picture_url?: string | null
+          school?: string | null
+          grade?: string | null
+          bio?: string | null
         }
         Relationships: []
       }
@@ -272,6 +287,154 @@ export type Database = {
             columns: ["practice_content_id"]
             isOneToOne: false
             referencedRelation: "practice_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_activity: {
+        Row: {
+          id: string
+          user_id: string
+          practice_content_id: string | null
+          activity_type: string
+          score: number | null
+          total_questions: number | null
+          correct_answers: number | null
+          time_spent_seconds: number | null
+          started_at: string
+          completed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          practice_content_id?: string | null
+          activity_type: string
+          score?: number | null
+          total_questions?: number | null
+          correct_answers?: number | null
+          time_spent_seconds?: number | null
+          started_at?: string
+          completed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          practice_content_id?: string | null
+          activity_type?: string
+          score?: number | null
+          total_questions?: number | null
+          correct_answers?: number | null
+          time_spent_seconds?: number | null
+          started_at?: string
+          completed_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_activity_practice_content_id_fkey"
+            columns: ["practice_content_id"]
+            isOneToOne: false
+            referencedRelation: "practice_content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_stats: {
+        Row: {
+          id: string
+          user_id: string
+          total_practice_sessions: number
+          total_questions_answered: number
+          total_correct_answers: number
+          total_time_spent_seconds: number
+          current_streak_days: number
+          longest_streak_days: number
+          last_practice_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          total_practice_sessions?: number
+          total_questions_answered?: number
+          total_correct_answers?: number
+          total_time_spent_seconds?: number
+          current_streak_days?: number
+          longest_streak_days?: number
+          last_practice_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          total_practice_sessions?: number
+          total_questions_answered?: number
+          total_correct_answers?: number
+          total_time_spent_seconds?: number
+          current_streak_days?: number
+          longest_streak_days?: number
+          last_practice_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          id: string
+          user_id: string
+          achievement_type: string
+          title: string
+          description: string | null
+          icon_name: string | null
+          earned_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          achievement_type: string
+          title: string
+          description?: string | null
+          icon_name?: string | null
+          earned_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          achievement_type?: string
+          title?: string
+          description?: string | null
+          icon_name?: string | null
+          earned_at?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

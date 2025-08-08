@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { PracticeCard } from "@/components/PracticeCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +13,7 @@ interface PracticeProblem {
   timeEstimate: string;
   creator: string;
   savedCount: number;
+  documentId: string | null;
 }
 
 // Map database question_type to UI-friendly format
@@ -63,7 +63,7 @@ export function PracticeGrid({ searchTerm = "", filters }: PracticeGridProps) {
             question_type,
             difficulty,
             time_estimate,
-            documents(id)
+            image_url
           `)
           .order('created_at', { ascending: false });
 
@@ -81,6 +81,7 @@ export function PracticeGrid({ searchTerm = "", filters }: PracticeGridProps) {
             timeEstimate: item.time_estimate || "15 mins",
             creator: "OSSLT Teacher",
             savedCount: Math.floor(Math.random() * 50) + 10,
+            documentId: null, // No longer using documents
           }));
           
           setPracticeProblems(formattedData);
@@ -117,6 +118,7 @@ export function PracticeGrid({ searchTerm = "", filters }: PracticeGridProps) {
           timeEstimate: newItem.time_estimate || "15 mins",
           creator: "OSSLT Teacher",
           savedCount: Math.floor(Math.random() * 20),
+          documentId: null, // No longer using documents
         };
 
         setPracticeProblems(prev => [newPracticeProblem, ...prev]);

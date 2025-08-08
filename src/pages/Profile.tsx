@@ -1,273 +1,213 @@
 
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { MainNav } from "@/components/MainNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Trophy, BookOpen, Clock, CheckCircle2, BarChart3, Award } from "lucide-react";
+import { Clock, BookOpen } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface UserStats {
+  total_practice_sessions: number;
+  total_questions_answered: number;
+  total_correct_answers: number;
+  total_time_spent_seconds: number;
+  current_streak_days: number;
+  longest_streak_days: number;
+  last_practice_date: string | null;
+}
 
 const Profile = () => {
   const location = useLocation();
-  
-  // Sample data for user statistics
-  const userStats = {
-    practiceCompleted: 42,
-    questionsAnswered: 312,
-    accuracy: 76,
-    streak: 7,
-    timeSpent: "24h 42m",
-    joinDate: "February 12, 2025"
-  };
-  
-  // Sample data for recent activity
-  const recentActivity = [
-    {
-      id: "1",
-      title: "Understanding Themes in Short Stories",
-      date: "April 18, 2025",
-      score: 85,
-      type: "Multiple Choice"
-    },
-    {
-      id: "2",
-      title: "Analyzing Character Motivations",
-      date: "April 17, 2025",
-      score: 70,
-      type: "Short Answer"
-    },
-    {
-      id: "3",
-      title: "Paragraph Writing: Organizing Ideas",
-      date: "April 15, 2025",
-      score: 90,
-      type: "Paragraph"
+  const { user, profile, refreshProfile } = useAuth();
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
     }
-  ];
-  
-  // Sample data for achievements
-  const achievements = [
-    {
-      id: "1",
-      title: "Reading Master",
-      description: "Completed 20 reading comprehension exercises",
-      icon: BookOpen,
-      date: "April 12, 2025",
-      color: "bg-blue-100 text-blue-800"
-    },
-    {
-      id: "2",
-      title: "Week Warrior",
-      description: "Maintained a 7-day practice streak",
-      icon: CalendarDays,
-      date: "April 18, 2025",
-      color: "bg-green-100 text-green-800"
-    },
-    {
-      id: "3",
-      title: "Perfect Score",
-      description: "Achieved 100% on a practice test",
-      icon: Trophy,
-      date: "April 5, 2025",
-      color: "bg-yellow-100 text-yellow-800"
-    },
-  ];
-  
-  // Sample data for performance by question type
-  const performanceByType = [
-    { type: "Multiple Choice", correct: 145, total: 180, color: "bg-blue-500" },
-    { type: "Short Answer", correct: 62, total: 84, color: "bg-purple-500" },
-    { type: "Paragraph", correct: 28, total: 32, color: "bg-indigo-500" },
-    { type: "Matching", correct: 12, total: 16, color: "bg-pink-500" }
-  ];
+  }, [user]);
+
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch user stats
+      const { data: statsData } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+
+      setUserStats(statsData);
+
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      toast.error('Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTimeSpent = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Get Google profile data
+  const googleProfile = user?.user_metadata;
+  const profilePicture = googleProfile?.avatar_url || profile?.profile_picture_url;
+  const displayName = googleProfile?.full_name || `${profile?.first_name} ${profile?.last_name}`;
+  const email = user?.email;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <MainNav currentPath={location.pathname} />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-osslt-purple"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <MainNav currentPath={location.pathname} />
       
       <main className="container px-4 py-24 mx-auto">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="mb-8 flex flex-col md:flex-row items-start md:items-center gap-6">
             <Avatar className="h-24 w-24 border-4 border-white shadow-md">
-              <AvatarImage src="" />
-              <AvatarFallback className="text-3xl bg-osslt-purple text-white">DP</AvatarFallback>
+              <AvatarImage src={profilePicture || ""} />
+              <AvatarFallback className="text-3xl bg-osslt-purple text-white">
+                {displayName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+              </AvatarFallback>
             </Avatar>
             
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-osslt-dark-gray">David Parker</h1>
-              <p className="text-gray-600">Grade 10 · Maple Ridge Secondary School</p>
+              <h1 className="text-3xl font-bold text-osslt-dark-gray">
+                {displayName}
+              </h1>
+              <p className="text-gray-600">{email}</p>
+              {profile?.school && (
+                <p className="text-gray-600">
+                  {profile.grade && `${profile.grade} · `}
+                  {profile.school}
+                </p>
+              )}
+              {profile?.bio && (
+                <p className="text-gray-600 mt-2">{profile.bio}</p>
+              )}
               <div className="flex items-center mt-2 flex-wrap gap-2">
-                <Badge variant="outline" className="bg-osslt-yellow/50 text-osslt-dark-gray border-none">
-                  <CalendarDays className="h-3 w-3 mr-1" />
-                  {userStats.streak} day streak
+                <Badge variant="outline" className="bg-osslt-purple/10 text-osslt-dark-purple">
+                  Member since {formatDate(profile?.created_at || '')}
                 </Badge>
-                <Badge variant="outline" className="bg-osslt-purple/10 text-osslt-dark-purple border-none">
-                  <Trophy className="h-3 w-3 mr-1" />
-                  3 achievements
-                </Badge>
-                <Badge variant="outline" className="bg-green-100 text-green-800 border-none">
-                  <BookOpen className="h-3 w-3 mr-1" />
-                  {userStats.practiceCompleted} practices completed
-                </Badge>
+                {userStats && (
+                  <Badge variant="outline" className="bg-green-100 text-green-800">
+                    {userStats.current_streak_days} day streak
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Practices Completed</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-medium">Total Time Spent on Website</CardTitle>
+                <Clock className="h-6 w-6 text-osslt-purple" />
               </CardHeader>
               <CardContent>
-                <div className="flex items-center">
-                  <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
-                  <span className="text-2xl font-bold">{userStats.practiceCompleted}</span>
+                <div className="text-3xl font-bold text-osslt-purple">
+                  {userStats ? formatTimeSpent(userStats.total_time_spent_seconds) : '0h 0m'}
                 </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Total time spent practicing and learning
+                </p>
               </CardContent>
             </Card>
-            
+
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Questions Answered</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-medium">Practice Sessions Done</CardTitle>
+                <BookOpen className="h-6 w-6 text-osslt-purple" />
               </CardHeader>
               <CardContent>
-                <div className="flex items-center">
-                  <BarChart3 className="h-5 w-5 text-blue-500 mr-2" />
-                  <span className="text-2xl font-bold">{userStats.questionsAnswered}</span>
+                <div className="text-3xl font-bold text-osslt-purple">
+                  {userStats?.total_practice_sessions || 0}
                 </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Average Accuracy</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Award className="h-5 w-5 text-yellow-500 mr-2" />
-                  <span className="text-2xl font-bold">{userStats.accuracy}%</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Time Spent</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Clock className="h-5 w-5 text-red-500 mr-2" />
-                  <span className="text-2xl font-bold">{userStats.timeSpent}</span>
-                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Total practice sessions completed
+                </p>
               </CardContent>
             </Card>
           </div>
-          
-          <Tabs defaultValue="progress" className="w-full">
-            <TabsList className="mb-8">
-              <TabsTrigger value="progress" className="text-base">Progress</TabsTrigger>
-              <TabsTrigger value="activity" className="text-base">Recent Activity</TabsTrigger>
-              <TabsTrigger value="achievements" className="text-base">Achievements</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="progress">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Performance by Question Type</CardTitle>
-                  <CardDescription>
-                    Your accuracy across different question formats
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    {performanceByType.map((item, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="font-medium">{item.type}</span>
-                          <span className="text-muted-foreground">
-                            {Math.round((item.correct / item.total) * 100)}% ({item.correct}/{item.total})
-                          </span>
-                        </div>
-                        <Progress 
-                          value={(item.correct / item.total) * 100} 
-                          className="h-2" 
-                          indicatorClassName={item.color}
-                        />
-                      </div>
-                    ))}
+
+          {/* Progress Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Learning Progress</CardTitle>
+              <CardDescription>
+                Your learning journey and current streak
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium mb-2">Current Streak</h4>
+                  <p className="text-3xl font-bold text-osslt-purple">
+                    {userStats?.current_streak_days || 0} days
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Keep up the great work!
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Longest Streak</h4>
+                  <p className="text-3xl font-bold text-osslt-purple">
+                    {userStats?.longest_streak_days || 0} days
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Your best streak so far
+                  </p>
+                </div>
+              </div>
+              
+              {userStats && userStats.total_practice_sessions > 0 && (
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Practice Completion Rate</span>
+                    <span>
+                      {Math.round((userStats.total_practice_sessions / (userStats.total_practice_sessions + 5)) * 100)}%
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="activity">
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <Card key={activity.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-base">{activity.title}</CardTitle>
-                          <CardDescription>{activity.date}</CardDescription>
-                        </div>
-                        <Badge variant="outline" className={
-                          activity.score >= 80 
-                            ? "bg-green-100 text-green-800" 
-                            : activity.score >= 60 
-                              ? "bg-yellow-100 text-yellow-800" 
-                              : "bg-red-100 text-red-800"
-                        }>
-                          {activity.score}%
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="bg-gray-100 text-gray-800">
-                          {activity.type}
-                        </Badge>
-                        <Progress 
-                          value={activity.score} 
-                          className="w-36 h-2" 
-                          indicatorClassName={
-                            activity.score >= 80 
-                              ? "bg-green-500" 
-                              : activity.score >= 60 
-                                ? "bg-yellow-500" 
-                                : "bg-red-500"
-                          }
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="achievements">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {achievements.map((achievement) => (
-                  <Card key={achievement.id} className="overflow-hidden">
-                    <CardHeader className={`${achievement.color} pb-2 border-b`}>
-                      <div className="flex items-center">
-                        <achievement.icon className="h-5 w-5 mr-2" />
-                        <CardTitle className="text-base">{achievement.title}</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <CardDescription className="text-base mb-2">
-                        {achievement.description}
-                      </CardDescription>
-                      <p className="text-xs text-muted-foreground">
-                        Earned on {achievement.date}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
+                  <Progress 
+                    value={(userStats.total_practice_sessions / (userStats.total_practice_sessions + 5)) * 100} 
+                    className="h-3" 
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Based on your practice sessions
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>

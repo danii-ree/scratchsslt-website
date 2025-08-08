@@ -1,8 +1,8 @@
-
 import { useLocation } from "react-router-dom";
 import { MainNav } from "@/components/MainNav";
 import { SearchAndFilter } from "@/components/SearchAndFilter";
 import { PracticeGrid } from "@/components/PracticeGrid";
+import { FeaturedPractice } from "@/components/FeaturedPractice";
 import { useState } from "react";
 
 const Practice = () => {
@@ -44,15 +44,23 @@ const Practice = () => {
             </p>
           </div>
           
+          <div className="mb-10">
+            <h2 className="text-xl font-semibold mb-4 text-osslt-dark-gray">Featured Practice</h2>
+            <FeaturedPractice />
+          </div>
+          
           <SearchAndFilter 
             onSearch={handleSearch} 
             onFilterChange={handleFilterChange} 
           />
           
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-4 text-osslt-dark-gray">All Practice Content</h2>
           <PracticeGrid 
             searchTerm={searchTerm}
             filters={filters}
           />
+          </div>
         </div>
       </main>
     </div>

@@ -30,11 +30,18 @@ interface Option {
   text: string;
 }
 
+interface MatchingPair {
+  id: string;
+  left: string;
+  right: string;
+}
+
 interface QuestionFormProps {
   onQuestionAdd: (question: {
     text: string;
     type: string;
     options?: Option[];
+    matchingPairs?: MatchingPair[];
     correctAnswer?: string;
   }) => void;
 }
@@ -50,6 +57,10 @@ export function QuestionForm({ onQuestionAdd }: QuestionFormProps) {
   const [options, setOptions] = useState<Option[]>([
     { id: crypto.randomUUID(), text: "" },
     { id: crypto.randomUUID(), text: "" },
+  ]);
+  const [matchingPairs, setMatchingPairs] = useState<MatchingPair[]>([
+    { id: crypto.randomUUID(), left: "", right: "" },
+    { id: crypto.randomUUID(), left: "", right: "" },
   ]);
   const [loading, setLoading] = useState(false);
 
@@ -81,6 +92,20 @@ export function QuestionForm({ onQuestionAdd }: QuestionFormProps) {
     ));
   };
 
+  const addMatchingPair = () => {
+    setMatchingPairs([...matchingPairs, { id: crypto.randomUUID(), left: "", right: "" }]);
+  };
+
+  const removeMatchingPair = (id: string) => {
+    setMatchingPairs(matchingPairs.filter(pair => pair.id !== id));
+  };
+
+  const updateMatchingPair = (id: string, field: 'left' | 'right', value: string) => {
+    setMatchingPairs(matchingPairs.map(pair => 
+      pair.id === id ? { ...pair, [field]: value } : pair
+    ));
+  };
+
   const handleSubmit = (values: z.infer<typeof questionSchema>) => {
     setLoading(true);
     
@@ -88,6 +113,7 @@ export function QuestionForm({ onQuestionAdd }: QuestionFormProps) {
       text: values.text,
       type: values.type,
       options: values.type === 'multiple-choice' ? options : undefined,
+      matchingPairs: values.type === 'matching' ? matchingPairs : undefined,
       correctAnswer: values.type !== 'paragraph' ? values.correctAnswer : undefined,
     });
 
@@ -101,6 +127,11 @@ export function QuestionForm({ onQuestionAdd }: QuestionFormProps) {
     setOptions([
       { id: crypto.randomUUID(), text: "" },
       { id: crypto.randomUUID(), text: "" },
+    ]);
+    
+    setMatchingPairs([
+      { id: crypto.randomUUID(), left: "", right: "" },
+      { id: crypto.randomUUID(), left: "", right: "" },
     ]);
     
     setLoading(false);
@@ -191,6 +222,48 @@ export function QuestionForm({ onQuestionAdd }: QuestionFormProps) {
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Option
+            </Button>
+          </div>
+        )}
+
+        {form.watch("type") === 'matching' && (
+          <div className="space-y-4 animate-fade-in">
+            <Label>Matching Pairs</Label>
+            {matchingPairs.map((pair, index) => (
+              <div key={pair.id} className="flex items-center gap-2">
+                <Input
+                  value={pair.left}
+                  onChange={(e) => updateMatchingPair(pair.id, 'left', e.target.value)}
+                  placeholder={`Left item ${index + 1}`}
+                  required
+                />
+                <span className="text-muted-foreground">→</span>
+                <Input
+                  value={pair.right}
+                  onChange={(e) => updateMatchingPair(pair.id, 'right', e.target.value)}
+                  placeholder={`Right item ${index + 1}`}
+                  required
+                />
+                {matchingPairs.length > 2 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeMatchingPair(pair.id)}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addMatchingPair}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Matching Pair
             </Button>
           </div>
         )}
