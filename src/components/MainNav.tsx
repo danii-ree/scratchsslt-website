@@ -19,7 +19,7 @@ export function MainNav({ currentPath }: MainNavProps) {
     try {
       await signOut();
       // Redirect to login page after successful logout
-      window.location.href = '/auth';
+      window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
       toast.error("Failed to logout");
