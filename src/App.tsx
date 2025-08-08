@@ -35,7 +35,7 @@ const App = () => (
 // App content with conditional navbar
 const AppContent = () => {
   const location = useLocation();
-  const isAuthPage = ["/", "/auth", "/login", "/register"].includes(location.pathname);
+  const isAuthPage = ["/", "/auth"].includes(location.pathname);
 
   return (
     <>
@@ -43,8 +43,6 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/home"
           element={

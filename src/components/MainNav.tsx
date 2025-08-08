@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -11,6 +11,7 @@ interface MainNavProps {
 }
 
 export function MainNav({ currentPath }: MainNavProps) {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -19,7 +20,7 @@ export function MainNav({ currentPath }: MainNavProps) {
     try {
       await signOut();
       // Redirect to login page after successful logout
-      window.location.href = '/';
+      navigate('/auth');
     } catch (error) {
       console.error('Logout error:', error);
       toast.error("Failed to logout");
